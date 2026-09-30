@@ -1,0 +1,7 @@
+.build/
+build/
+__pycache__/
+*.pyc
+~$*
+# third-party skill bundles (installed into ~/.claude/skills; not part of this project)
+_skill-sources/
