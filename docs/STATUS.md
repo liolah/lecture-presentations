@@ -24,6 +24,11 @@ Stages: `—` not started · `survey` digest written · `review` content review 
 - Is a BUE logo required on title slides?
 - Which textbook edition sets the notation (older Sedra/Smith V_t, k'_n vs newer V_tn, V_OV)?
 
+## Design rounds (electronics)
+| round | what | status |
+|---|---|---|
+| 1 | A notebook / B datasheet / C editorial on the 7-slide MOSFET sample (`families/electronics/explore/round1/`) | **awaiting user feedback** (questions in its README) |
+
 ## Next steps
-1. Round 1 of the MOSFET sample: 2–3 light directions, rendered, with a critique of each.
-2. Iterate with the user until the sample is approved, then consolidate (tokens, patterns, template, lib).
+1. Get the user's round-1 feedback (direction, figure framing, section label, subscript style, s16 circuit rebuild).
+2. Round 2: narrow down; iterate until the sample is approved, then consolidate (tokens, patterns, template, lib).

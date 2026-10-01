@@ -147,16 +147,20 @@ def build(src, out_dir, mode, pdf=True):
             sl = pres.Slides(i)
             n = n_states(sl)
             chrome = '#nochrome' not in sl.Name
+            # tokens progress.solution=false: no step dots in the final-state build (lectures' student PDF)
+            dots = chrome and T['progress'].get('dots', 0) > 0
             if mode == 'teaching' and n > 1:
                 copies = [sl]
                 for _ in range(n - 1):
                     copies.append(copies[-1].Duplicate().Item(1))
                 for k, c in enumerate(copies, 1):
                     apply_state(c, k, n, mode)
-                    if chrome: progress(c, k, n)
+                    if dots: progress(c, k, n)
             else:
                 apply_state(sl, n, n, mode)
-                if chrome: progress(sl, n, n)
+                # progress.single=false: no dots on single-state slides either (defaults keep the old behaviour)
+                if dots and T['progress'].get('solution' if mode == 'solution' else 'single', True):
+                    progress(sl, n, n)
         for i in range(1, pres.Slides.Count + 1):
             if '#nochrome' not in pres.Slides(i).Name:
                 page_number(pres.Slides(i), i)

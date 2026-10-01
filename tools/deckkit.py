@@ -121,7 +121,8 @@ def style_range(tr, font=None, size=None, color=None, bold=None, italic=None):
 
 
 def text(sl, x, y, w, h, s, size=None, font=None, color='navy', align='l', anchor='t',
-         name=None, bold=False, italic=False, spacing=1.0, after=0, autofit=False, wrap=True):
+         name=None, bold=False, italic=False, spacing=1.0, after=0, autofit=False, wrap=True, raw=False):
+    """raw=True: no mini-markup (used for LaTeX equation sources, where _{..} and ** are LaTeX)."""
     size = size or S['body']
     font = font or F['body']
     shp = sl.Shapes.AddTextbox(1, x, y, w, h)
@@ -130,8 +131,11 @@ def text(sl, x, y, w, h, s, size=None, font=None, color='navy', align='l', ancho
     tf.AutoSize = 1 if autofit else 0      # before WordWrap: a non-wrapping auto-size box collapses to 0 width
     tf.WordWrap = TRUE if wrap else FALSE
     tf.VerticalAnchor = AN[anchor]
-    plain, spans = parse_markup(s.replace('\n', '\r'), color)
-    plain, spans, subs = split_subscripts(plain, spans)
+    if raw:
+        plain, spans, subs = s.replace('\n', '\r'), [], []
+    else:
+        plain, spans = parse_markup(s.replace('\n', '\r'), color)
+        plain, spans, subs = split_subscripts(plain, spans)
     tr = tf.TextRange
     tr.Text = plain
     style_range(tr, font, size, color, bold, italic)
@@ -142,8 +146,11 @@ def text(sl, x, y, w, h, s, size=None, font=None, color='navy', align='l', ancho
     pf.SpaceBefore = 0
     for st, ln, col, b in spans:
         style_range(tr.Characters(st + 1, ln), color=col, bold=b if b else None)
+    italic_base = T.get('text', {}).get('italic_symbols', False)   # v_{GS}: italic v, like the equations
     for st, ln in subs:
         tr.Characters(st + 1, ln).Font.Subscript = TRUE
+        if italic_base and st > 0 and plain[st - 1].isalpha() and (st < 2 or not plain[st - 2].isalpha()):
+            tr.Characters(st, 1).Font.Italic = TRUE
     if not autofit:
         shp.Left, shp.Top, shp.Width, shp.Height = x, y, w, h   # re-assert geometry (alignment edges)
     else:
