@@ -5,7 +5,8 @@ A lecture is taught material, not a decorated document. Every design choice has 
 something easier to understand, read or present.
 
 ## Start of every session
-1. Read `docs/STATUS.md` to see what stage each lecture is at and what the next step is.
+1. Read `docs/STATUS.md` to see what stage each lecture is at and what the next step is, and `docs/lessons.md` (mistakes
+   already made and the rules that prevent them; add to it whenever something costs a rebuild).
 2. Read the active family's `FAMILY.md`, then only the docs it points to for the task at hand.
 3. For a specific lecture, read its `source/digest.md` and `source/review.md`. Don't re-survey the original deck.
 

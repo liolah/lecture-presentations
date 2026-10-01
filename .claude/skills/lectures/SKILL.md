@@ -35,6 +35,9 @@ Check technical doubts numerically in `check.py` or against the textbook. If sti
 `python source/check.py` → `python tools/lint.py <source.pptx>` (0 ERRORs) → render and inspect the changed slides at full
 resolution: figures, equations, overlaps, text fit.
 
+Pre-flight (from `docs/lessons.md`): equations via `kit.eq` (raw LaTeX); `\text`/`\mathrm` for units; no `\qquad`;
+background frames sent to the back; long titles checked; read `sheet.jpg` before any full-size PNG.
+
 ## 6. Release
 `(present).pptx` = teaching states; `(student).pdf` = final states, solutions included. Update `docs/STATUS.md`,
 append to the decision logs, and make one commit per lecture.
