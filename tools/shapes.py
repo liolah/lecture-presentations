@@ -39,6 +39,9 @@ def main():
                     extra = f' img {im.size[0]}x{im.size[1]} {sh.image.ext}'
                 except Exception as e:
                     extra = f' img ? ({sh.image.ext if hasattr(sh, "image") else e})'
+            descr = sh._element.xpath('./*[1]/p:cNvPr/@descr')
+            if descr:
+                extra += f' alt={descr[0][:70]!r}'
             txt = sh.text_frame.text[:60].replace('\n', ' | ') if sh.has_text_frame and sh.text_frame.text.strip() else ''
             print(f'  {sh.shape_id:>3} {str(sh.shape_type):22s} {box:26s} {sh.name[:28]!r}{extra} {txt!r}' if txt
                   else f'  {sh.shape_id:>3} {str(sh.shape_type):22s} {box:26s} {sh.name[:28]!r}{extra}')

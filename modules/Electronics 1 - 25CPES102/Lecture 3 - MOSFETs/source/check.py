@@ -39,8 +39,39 @@ def ex_dc_drain_voltage(VDD=10, RG1=10e6, RG2=10e6, RD=6e3, RS=6e3, Vt=1.0, kWL=
     }
 
 
+def ex_cs_amp_feedback_bias(VDD=15.0, RD=10e3, RG=10e6, RL=10e3, Vt=1.5, kWL=0.25e-3, VA=50.0):
+    """Slide 21 (Sedra CS amplifier, drain-to-gate feedback bias R_G). Find A_v = v_o/v_i and R_in.
+
+    DC (r_o neglected, as Sedra does): no gate current, so V_GS = V_D = V_DD - R_D I_D,
+    with I_D = 1/2 kWL (V_GS - Vt)^2. Small signal: g_m = kWL (V_GS - Vt), r_o = V_A / I_D,
+    A_v ~= -g_m (R_D || R_L || r_o) (R_G's feedback current neglected), R_in = R_G / (1 - A_v) (Miller).
+    """
+    # 1/2 k (VDD - RD I - Vt)^2 = I
+    a = 0.5 * kWL * RD ** 2
+    b = -(kWL * RD * (VDD - Vt) + 1)
+    c = 0.5 * kWL * (VDD - Vt) ** 2
+    disc = b * b - 4 * a * c
+    roots = sorted(((-b - math.sqrt(disc)) / (2 * a), (-b + math.sqrt(disc)) / (2 * a)))
+    ok = [I for I in roots if VDD - RD * I > Vt]
+    assert len(ok) == 1, roots
+    ID = ok[0]
+    VGS = VD = VDD - RD * ID
+    assert VD >= VGS - Vt                      # saturation (always true when drain is tied to gate through R_G)
+    gm = kWL * (VGS - Vt)
+    ro = VA / ID
+    Rp = 1 / (1 / RD + 1 / RL + 1 / ro)
+    Av = -gm * Rp
+    Rin = RG / (1 - Av)
+    # exact (R_G feedback included): v_o (1/Rp + 1/RG) = v_i (1/RG - g_m)
+    Av_exact = (1 / RG - gm) / (1 / Rp + 1 / RG)
+    return {'ID': ID, 'VGS': VGS, 'VD': VD, 'gm': gm, 'ro': ro, 'Rp': Rp, 'Av': Av, 'Rin': Rin,
+            'Av_exact': Av_exact, 'Rin_exact': RG / (1 - Av_exact)}
+
+
 def fmt(x, nd=2):
-    s = f'{x:.{nd}f}'.rstrip('0').rstrip('.')
+    s = f'{x:.{nd}f}'
+    if '.' in s:
+        s = s.rstrip('0').rstrip('.')
     return s.replace('-', '−')
 
 
@@ -53,5 +84,13 @@ if __name__ == '__main__':
     assert abs(r['rejected_VGS'] - (5 - 6 * 8 / 9)) < 1e-9  # -0.33 V < Vt
     assert r['quad_mA'] == (18.0, -25.0, 8.0)
     for k, v in r.items():
+        print(k, v)
+    a = ex_cs_amp_feedback_bias()
+    # Sedra's published values: I_D = 1.06 mA, V_D = 4.4 V, g_m = 0.725 mA/V, r_o = 47 k, A_v = -3.3, R_in = 2.33 M
+    assert abs(a['ID'] - 1.06e-3) < 0.01e-3 and abs(a['VD'] - 4.4) < 0.05
+    assert abs(a['gm'] - 0.725e-3) < 0.005e-3 and abs(a['ro'] - 47e3) < 0.5e3
+    assert abs(a['Av'] + 3.3) < 0.05 and abs(a['Rin'] - 2.33e6) < 0.02e6
+    assert abs(a['Av_exact'] - a['Av']) < 0.01          # R_G feedback is negligible, as the slide assumes
+    for k, v in a.items():
         print(k, v)
     print('ok')
