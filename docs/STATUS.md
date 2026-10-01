@@ -27,7 +27,8 @@ Stages: `—` not started · `survey` digest written · `review` content review 
 ## Design rounds (electronics)
 | round | what | status |
 |---|---|---|
-| 1 | A notebook / B datasheet / C editorial on the 7-slide MOSFET sample (`families/electronics/explore/round1/`) | **awaiting user feedback** (questions in its README) |
+| 1 | A notebook / B datasheet / C editorial on the 7-slide MOSFET sample (`families/electronics/explore/round1/`) | rejected: too close to sheet notes (see design/decisions.md) |
+| 2 | New identities from the reference templates: X "Schematic" (angular, PCB green + copper, Bebas Neue + DM Sans) / Y "Rounded" (pills, teal + coral, Poppins + Nunito); white page, white cards (`explore/round2/`) | **built and rendered; awaiting user feedback**. Comparisons: `.build/round2-compare-a.jpg` / `-b.jpg` (rebuild with `explore/round2/build.py`, then `explore/compare.py`) |
 
 ## Next steps
 1. Get the user's round-1 feedback (direction, figure framing, section label, subscript style, s16 circuit rebuild).

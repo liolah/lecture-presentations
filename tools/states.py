@@ -130,6 +130,16 @@ def progress(sl, k, n):
 
 def page_number(sl, k):
     w = T['canvas']['w']
+    pg = T.get('page')
+    if pg:   # family-styled page badge: {"y", "d", "badge": "square"|"circle"|null, "fill", "color"}
+        d = pg.get('d', 28); x = w - 72 - d; y = pg['y']
+        if pg.get('badge'):
+            box(sl, x, y, d, d, fill=pg.get('fill', 'accent'), kind=OVAL if pg['badge'] == 'circle' else 1,
+                name='chrome page')
+        text(sl, x - (0 if pg.get('badge') else 40), y, d + (0 if pg.get('badge') else 40), d, str(k),
+             size=S['page_no'], color=pg.get('color', 'text2'), align='c' if pg.get('badge') else 'r', anchor='m',
+             font=F.get('label', F['body']), bold=bool(pg.get('badge')), name='chrome page')
+        return
     text(sl, w - 72 - 60, T['progress']['y'] - 4, 60, 22, str(k), size=S['page_no'], color='text2',
          align='r', name='chrome page')
 

@@ -147,10 +147,13 @@ def text(sl, x, y, w, h, s, size=None, font=None, color='navy', align='l', ancho
     for st, ln, col, b in spans:
         style_range(tr.Characters(st + 1, ln), color=col, bold=b if b else None)
     italic_base = T.get('text', {}).get('italic_symbols', False)   # v_{GS}: italic v, like the equations
+    italic_sub = T.get('text', {}).get('italic_subscripts', False)  # ...and italic GS (Sedra style)
     for st, ln in subs:
         tr.Characters(st + 1, ln).Font.Subscript = TRUE
         if italic_base and st > 0 and plain[st - 1].isalpha() and (st < 2 or not plain[st - 2].isalpha()):
             tr.Characters(st, 1).Font.Italic = TRUE
+            if italic_sub and plain[st:st + ln].isalpha():
+                tr.Characters(st + 1, ln).Font.Italic = TRUE
     if not autofit:
         shp.Left, shp.Top, shp.Width, shp.Height = x, y, w, h   # re-assert geometry (alignment edges)
     else:

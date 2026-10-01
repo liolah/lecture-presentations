@@ -49,6 +49,7 @@ def to_omml(latex, roman_subs=True):
     from latex2mathml.converter import convert
     if roman_subs:
         latex = upright_subscripts(latex)
+    latex = re.sub(r'\\mathrm\{', r'\\text{', latex)   # units etc.: latex2mathml drops \mathrm on single letters
     mml = etree.fromstring(convert(latex).encode('utf-8'))
     out = _transform()(mml).getroot()
     return out if out.tag == '{%s}oMath' % M else out.find('.//m:oMath', NS)
@@ -64,9 +65,9 @@ def _arpr(size, color, font, bold=False):
     return r
 
 
-def pptx_math(latex, size, color, font='Cambria Math', align='left'):
+def pptx_math(latex, size, color, font='Cambria Math', align='left', roman_subs=True):
     """-> <a14:m><m:oMathPara>...</m:oMathPara></a14:m> ready to drop into an <a:p>."""
-    om = to_omml(latex)
+    om = to_omml(latex, roman_subs=roman_subs)
     for rpr in om.iter('{%s}rPr' % W):         # Word run props -> DrawingML run props
         parent = rpr.getparent()
         parent.replace(rpr, _arpr(size, color, font))
@@ -84,7 +85,7 @@ def pptx_math(latex, size, color, font='Cambria Math', align='left'):
     return m14
 
 
-def _convert_sp(sp):
+def _convert_sp(sp, roman_subs=True):
     body = sp.find('p:txBody', NS)
     paras = body.findall('a:p', NS)
     latex = '\n'.join(''.join(t.text or '' for t in p.iter('{%s}t' % A)) for p in paras).strip()
@@ -100,7 +101,7 @@ def _convert_sp(sp):
     p = etree.SubElement(body, '{%s}p' % A)
     if ppr is not None:
         p.append(ppr)
-    p.append(pptx_math(latex, size, color, align=align))
+    p.append(pptx_math(latex, size, color, align=align, roman_subs=roman_subs))
     # wrap the shape in mc:AlternateContent (what PowerPoint itself writes for equations)
     parent = sp.getparent(); idx = parent.index(sp)
     ac = etree.Element('{%s}AlternateContent' % MC, nsmap={'mc': MC})
@@ -117,8 +118,9 @@ def _convert_sp(sp):
     return latex
 
 
-def inject(path):
-    """Convert every text box whose name has the token 'eq' into a native equation. Returns the count."""
+def inject(path, roman_subs=True):
+    """Convert every text box whose name has the token 'eq' into a native equation. Returns the count.
+    roman_subs=False keeps letter subscripts italic (Sedra/Smith style: v_GS with italic GS)."""
     tmp = path + '.eqtmp'
     n = 0
     with zipfile.ZipFile(path) as zin, zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zout:
@@ -132,7 +134,7 @@ def inject(path):
                         continue
                     if sp.getparent().tag == '{%s}Choice' % MC:
                         continue                       # already converted
-                    _convert_sp(sp); n += 1
+                    _convert_sp(sp, roman_subs); n += 1
                 if n:
                     root_ns = x.nsmap
                     data = etree.tostring(x, xml_declaration=True, encoding='UTF-8', standalone=True)
