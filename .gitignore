@@ -1,7 +1,5 @@
-.build/
-build/
+# Everything is tracked, including .build/ (renders, intermediate builds) and _skill-sources/ (taste + impeccable
+# bundles), at the user's request (2026-10-01). Only caches and Office lock files are ignored.
 __pycache__/
 *.pyc
 ~$*
-# third-party skill bundles (installed into ~/.claude/skills; not part of this project)
-_skill-sources/
