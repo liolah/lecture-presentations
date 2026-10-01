@@ -25,10 +25,12 @@ something easier to understand, read or present.
 ## Rules
 - **Design before mass editing.** A family's design is approved on one sample before any lecture is converted.
   Everything in `families/<f>/explore/` is exploratory and is never used for deliverables.
-- **Figures.** A textbook or reference screenshot is kept and cleaned: crop it, remove debris and pasted masks,
-  frame it and credit it. Rebuild a figure only when cleaning can't make it readable or correct, and agree each rebuild
-  with the user (log it in the lecture's `review.md`). Don't overdo it.
+- **Figures.** Textbook figures are kept, cleaned (crop, no debris or masks), enhanced and credited. Check every figure's
+  resolution: **circuits and graphs that are not crisp are redrawn natively** (`lib/circuits.py`, `lib/plots.py`).
+  Log each redraw in the lecture's `review.md`.
 - **Answers are computed.** Every number in a worked example is produced and checked in `source/check.py`.
+- **Worked examples are elaborate** (user preference): one idea per step, a one-line reason per step, givens
+  colour-coded (`g1`..`g4`) in the Given list, on the circuit and wherever they are substituted. Usually 2 slides per example.
 - **Content changes are reviewed, never silent.** Log each one in `source/review.md` with its category and reason.
   A technically questionable point is investigated. If it can't be resolved, ask the user.
 - **Split, never shrink.** If content doesn't fit at the token sizes, split it across states or slides.
@@ -50,4 +52,6 @@ something easier to understand, read or present.
 ## Families
 | family | modules | status |
 |---|---|---|
-| `electronics` | Electronics 1 (25CPES102) | **exploring**: sample rounds with the user (see `families/electronics/FAMILY.md`) |
+| `electronics` | Electronics 1 (25CPES102) | **approved: style X "Schematic"** (see `families/electronics/FAMILY.md`) |
+
+Two devices edit this repo: `git pull --rebase` before work, push after each finished unit, never force-push.

@@ -25,6 +25,11 @@ costs a rebuild. Newest at the bottom of each section.
 | `fmt(50, 0)` gave "5" | stripped trailing zeros of integers | `check.fmt` only strips after a decimal point |
 | Figure extraction hung once, and the process could not be killed | transient COM stall; `Stop-Process`/`tasklist` are blocked here | `figures.py --missing` re-extracts only absent figures; run long jobs in the background and check progress via file timestamps |
 
+| `\color{..}` coloured the rest of the equation; Office's converter dropped colours | `\color` is a switch; MML2OMML ignores `mathcolor` | Use `\textcolor{#hex}{..}` (or `kit.gc('g1', ..)`); `eqn.py` carries the colour through with private-use sentinels and splits the runs |
+| Re-running a sharpening pass would sharpen again | in-place image processing is not idempotent | `figures.py` crops into `raw/` and enhances raw/ -> final, always |
+| Plot labels collided with the load line and with axis ticks | labels placed at fixed positions | `drawings.load_line` places curve labels where the line clears the whole label width; the x-axis label sits right of the arrow |
+| Example circuit spilled out of its card on the right | fixed drawing width, card too narrow | Check a drawing's right-most label against the card edge; put labels on the free side |
+
 ## Working efficiently here
 - **Shell policy (lean-ctx):** `python -c`, python heredocs, `tasklist`, `Stop-Process` and redirects into project files are blocked. Write
   scripts to the scratchpad and run them. `ctx_shell` may stay pinned to another project root: start commands with

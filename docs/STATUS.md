@@ -13,7 +13,7 @@ Stages: `—` not started · `survey` digest written · `review` content review 
 | module | lecture | stage | notes |
 |---|---|---|---|
 | Electronics 1 - 25CPES102 | L1, L2 | — | not in `reference/`: do they exist? |
-| Electronics 1 - 25CPES102 | L3 MOSFETs | **built (draft 1)** | full 28-slide lecture in both candidate styles: `Lecture 3 - MOSFETs/draft/` (present PPTX + student PDF). Awaiting user review: style X vs Y, content (`source/review.md`), and the 2 low-res figure rebuilds (3a, 3b) |
+| Electronics 1 - 25CPES102 | L3 MOSFETs | **built (draft 2)** | style X; 30 slides; circuits and load line redrawn natively; elaborate colour-coded examples (2 slides each). `Lecture 3 - MOSFETs/draft/`. Awaiting user review |
 | Electronics 1 - 25CPES102 | L4 BJTs | survey | |
 | Electronics 1 - 25CPES102 | L5 Op Amps | survey | |
 | Computer Architecture | L1–L9 | — | in `reference/computer_architecture/`, not started |
@@ -31,10 +31,14 @@ Stages: `—` not started · `survey` digest written · `review` content review 
 | 2 | New identities from the reference templates: X "Schematic" (angular, PCB green + copper, Bebas Neue + DM Sans) / Y "Rounded" (pills, teal + coral, Poppins + Nunito); white page, white cards (`explore/round2/`) | **built and rendered; awaiting user feedback**. Comparisons: `.build/round2-compare-a.jpg` / `-b.jpg` (rebuild with `explore/round2/build.py`, then `explore/compare.py`) |
 
 ## Next steps
-1. **Waiting for the user** to review the L3 draft (X and Y) and pick or adjust a style.
-2. Then: consolidate the chosen style into `families/electronics/design/` (tokens, patterns, template) and promote
-   `lib/kit.py` from candidate to approved; release L3 rev1.0; then L4 and L5, one at a time.
+1. **Waiting for the user** to review L3 draft 2.
+2. Then: write `design/patterns.md` from L3, release L3 rev1.0, then L4 BJTs and L5 Op Amps one at a time
+   (same rules: redraw non-crisp circuits, elaborate colour-coded examples).
+
+## Working on two devices
+`git pull --rebase` before starting, commit and push after each finished unit; never force-push.
 
 ## How to rebuild the L3 draft
-`python "modules/Electronics 1 - 25CPES102/Lecture 3 - MOSFETs/source/build.py"` (both styles; or pass X / Y).
-Figures: `source/figures.py --missing`. Answers: `source/check.py`. Shared components: `families/electronics/lib/kit.py`.
+`python "modules/Electronics 1 - 25CPES102/Lecture 3 - MOSFETs/source/build.py"` (style X, from `design/tokens.json`).
+Figures: `source/figures.py --missing` (crop into raw/) and `--enhance` (raw/ -> final). Drawings: `source/drawings.py`.
+Answers: `source/check.py`. Shared components: `families/electronics/lib/{kit,circuits,plots}.py`.

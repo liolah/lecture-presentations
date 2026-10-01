@@ -40,14 +40,34 @@ def path(key):
     return os.path.join(OUT, key + '.png')
 
 
+def raw(key):
+    return os.path.join(OUT, 'raw', key + '.png')
+
+
+def enhance(key):
+    """Quality pass for kept raster figures (figure-quality rule): figcrop renders at 3x into raw/; sharpen the
+    interpolated edges and push near-white background to pure white. Always raw/ -> final, so it is repeatable."""
+    from PIL import Image, ImageFilter
+    im = Image.open(raw(key)).convert('RGB')
+    im = im.filter(ImageFilter.UnsharpMask(radius=2.5, percent=110, threshold=3))
+    im = im.point(lambda v: 255 if v >= 244 else v)
+    im.save(path(key))
+
+
 def credit(key):
     return FIGS[key][2]
 
 
 if __name__ == '__main__':
+    want = sys.argv[1:]     # optional keys; '--missing' = only absent figures; '--enhance' = quality pass on all
+    if want == ['--enhance']:
+        for k in FIGS:
+            if os.path.exists(raw(k)):
+                enhance(k); print('enhanced', k)
+        sys.exit(0)
     import figcrop
-    want = sys.argv[1:]                         # optional keys; '--missing' = only figures not yet extracted
     for k, (s, ids, _) in FIGS.items():
-        if want == ['--missing'] and os.path.exists(path(k)) or (want and want != ['--missing'] and k not in want):
+        if want == ['--missing'] and os.path.exists(raw(k)) or (want and want != ['--missing'] and k not in want):
             continue
-        print(k, *figcrop.crop(DECK, s, ids, path(k), scale=3), flush=True)
+        print(k, *figcrop.crop(DECK, s, ids, raw(k), scale=3), flush=True)
+        enhance(k)

@@ -1,32 +1,26 @@
-"""L3 MOSFETs: full lecture build (DRAFT: the family design is not approved yet; built in both candidate styles).
+"""L3 MOSFETs: full lecture build in the approved electronics style (X).
 
-Usage:  python build.py          (X and Y)        python build.py X
-Output: ../draft/ELEC1 L3 MOSFETs draft-<V> (present).pptx  +  (student).pdf     (scratch in .build/electronics/L3/)
-Content decisions and their reasons: review.md. Computed answers: check.py. Figures: figures.py.
+Usage:  python build.py
+Output: ../draft/ELEC1 L3 MOSFETs draft-2 (present).pptx  +  (student).pdf     (scratch in .build/electronics/L3/)
+Content decisions and their reasons: review.md. Computed answers: check.py. Figures: figures.py (kept, cleaned);
+drawings.py (circuits and plots redrawn natively).
 """
-import os, shutil, subprocess, sys
+import os, shutil, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = HERE
 while not os.path.exists(os.path.join(ROOT, 'tools', 'family.py')):
     ROOT = os.path.dirname(ROOT)
-FAM = os.path.join(ROOT, 'families', 'electronics')
-
-if len(sys.argv) == 1:
-    for v in 'XY':
-        subprocess.run([sys.executable, __file__, v], check=True)
-    sys.exit(0)
-
-V = sys.argv[1]
-os.environ['DECK_TOKENS'] = os.path.join(FAM, 'explore', 'round2', V, 'tokens.json')
-sys.path[:0] = [os.path.join(ROOT, 'tools'), HERE, os.path.join(FAM, 'explore', 'round1')]
+os.environ.pop('DECK_TOKENS', None)
+sys.path[:0] = [os.path.join(ROOT, 'tools'), HERE]
 import family
 family.use('electronics')
 import kit
 from kit import *                           # noqa
 import eqn, states
-import circuit, check, figures as FIG
+import check, drawings as D, figures as FIG
 import importlib.util
+V = 'X'
 
 spec = importlib.util.spec_from_file_location('module', os.path.join(os.path.dirname(os.path.dirname(HERE)), 'module.py'))
 M = importlib.util.module_from_spec(spec); spec.loader.exec_module(M)
@@ -121,7 +115,8 @@ def s_cmos(pres, lay):
 
 def s_symbols(pres, lay):
     sl = slide(pres, lay, 'Circuit symbols: n-channel and p-channel', section=SEC[1])
-    fig(sl, 'symbols', MX, 175, 640, 470)
+    card(sl, MX, 175, 640, 420, name='drawing card')
+    D.symbols(sl, MX + 50, 200)
     text_col(sl, 760, 190, W - MX - 760, [
         ('@1', 'In these symbols the arrow is on the body: it points **in** for an n-channel device and **out** '
                'for a p-channel device.'),
@@ -179,11 +174,13 @@ def s_resistor(pres, lay):
 
 def s_large_signal(pres, lay):
     sl = slide(pres, lay, 'Large-signal model in saturation', section=SEC[2])
-    fig(sl, 'large_signal', MX, 160, W - 2 * MX, 380)
-    text_col(sl, MX, 570, 760, [
+    card(sl, MX, 165, 620, 400, name='drawing card')
+    ex, ey = D.large_signal(sl, MX + 60, 200)
+    text_col(sl, 760, 185, W - MX - 760, [
         ('@1', 'In saturation the MOSFET acts as a **voltage-controlled current source** from drain to source.'),
-        ('@2', 'The gate draws no current: i_{G} = 0.')], size=23)
-    eq(sl, 880, 580, SAT, size=28, w=W - MX - 880, st='@3')
+        ('@2', 'The gate draws no current: i_{G} = 0.'),
+        ('@3', 'The drain current is set by v_{GS} alone:')], size=23)
+    eq(sl, 786, 470, SAT, size=28, w=W - MX - 786, st='@3')
 
 
 # ------------------------------------------------------------------ 3 DC circuits
@@ -205,41 +202,82 @@ def s_recipe(pres, lay):
          size=21, color='text2', name='note @4')
 
 
-def s_ex_dc(pres, lay):
+EX1_GIVENS = [('g1', 'V_{DD} = 10 V'), ('g2', 'R_{G1} = R_{G2} = 10 MΩ'), ('g3', 'R_{D} = R_{S} = 6 kΩ'),
+              ('g4', 'V_{t} = 1 V,   k′_{n}(W/L) = 1 mA/V²')]
+EX1_COL = {'vdd': 'g1', 'rg': 'g2', 'r': 'g3'}
+
+
+def ex1_frame(pres, lay, part, nodes_on):
+    """Shared left column for Example 1: circuit (givens coloured) + givens list; node voltages as found."""
     r = check.ex_dc_drain_voltage()
-    sl = slide(pres, lay, 'Example: find the drain voltage', section=SEC[3])
-    text(sl, MX, 140, W - 2 * MX, 34, 'Given V_{t} = 1 V and k′_{n}(W/L) = 1 mA/V². The gate draws no current.',
-         size=23, color='text2', name='question')
-    card(sl, MX, 196, 520, 540, name='circuit card')
-    nodes = circuit.dc_example(sl, MX + 150, 236, color='navy', size=19)
-    for (px, py), s, st, col in ((nodes['G'], f"V_{{G}} = {f(r['VG'])} V", '@2', 'accent'),
-                                 (nodes['S'], f"V_{{S}} = {f(r['VS'])} V", '@6', 'accent'),
-                                 (nodes['D'], f"V_{{D}} = {f(r['VD'])} V", '@6', 'answer')):
-        text(sl, px + 16, py - 34, 160, 30, s, size=19, font=LABEL, color=col, bold=True, name='node ' + st)
-    x, w = 640, W - MX - 640
-    y = steps(sl, x, 200, w, [
-        ('@2', 'Gate voltage: the divider is unloaded',
-         rf"V_G = V_{{DD}}\,\frac{{R_{{G2}}}}{{R_{{G1}}+R_{{G2}}}} = {f(r['VG'])}\ \mathrm{{V}}", None),
-        ('@3', 'Assume saturation, with V_{GS} = V_{G} − I_{D}R_{S}   (I in mA, R in kΩ)',
-         r"I_D = \frac{1}{2}(1)\,(5-6I_D-1)^2", None),
-        ('@4', 'Solve the quadratic',
-         rf"18I_D^2-25I_D+8=0\ \Rightarrow\ I_D={f(r['roots_mA'][1])}\ \text{{or}}\ {f(r['roots_mA'][0])}\ \mathrm{{mA}}",
-         None),
-        ('@5', f"I_{{D}} = {f(r['roots_mA'][1])} mA would give V_{{GS}} = {f(r['rejected_VGS'])} V < V_{{t}} "
-               f"(no channel): reject.", None,
-         f"So I_{{D}} = {f(r['ID'] * 1e3)} mA and V_{{GS}} = {f(r['VGS'])} V."),
-        ('@6', 'Drain voltage',
-         rf"V_D = V_{{DD}} - I_DR_D = 10 - {f(r['ID'] * 1e3)}(6) = {f(r['VD'])}\ \mathrm{{V}}", None),
-    ], label_size=20, eq_size=25)
-    rw = result(sl, x + 48, y - 4, f"V_{{D}} = {f(r['VD'])} V", name='answer @6')
-    text(sl, x + 48 + rw + 24, y - 2, w - rw - 80, 60,
-         f"✓ V_{{DS}} = {f(r['VDS'])} V ≥ V_{{GS}} − V_{{t}} = {f(r['VOV'])} V: saturation holds.",
-         size=19, color='ok', name='check @6')
+    sl = slide(pres, lay, f'Example 1: find the drain voltage ({part} of 2)', section=SEC[3])
+    card(sl, MX, 150, 470, 450, name='circuit card')
+    nodes = D.dc_example(sl, MX + 130, 172, col=EX1_COL, size=18, h=380)
+    labels = {'G': (f"V_{{G}} = {f(r['VG'])} V", 'accent'), 'S': (f"V_{{S}} = {f(r['VS'])} V", 'accent'),
+              'D': (f"V_{{D}} = {f(r['VD'])} V", 'answer')}
+    for k, st in nodes_on:
+        (px, py), (s, col) = nodes[k], labels[k]
+        text(sl, px + 14, py - 30, 150, 28, s, size=17, font=LABEL, color=col, bold=True,
+             name='node' + (' ' + st if st else ''))
+    givens(sl, MX, 612, 470, EX1_GIVENS, size=17, gap=2)
+    return sl, r
+
+
+def s_ex_dc_a(pres, lay):
+    sl, r = ex1_frame(pres, lay, 1, [('G', '@2')])
+    x, w = 580, W - MX - 580
+    text(sl, x, 150, w, 34, '**Find** the drain voltage V_{D}. The MOSFET’s region is not given.', size=22,
+         name='question')
+    solution(sl, x, 205, w, [
+        dict(st='@1', title='Find the gate voltage V_{G}',
+             note='No current flows into the gate, so R_{G1} and R_{G2} form an unloaded voltage divider.',
+             eq=[rf"V_G = {gc('g1', 'V_{DD}')}\,\frac{{{gc('g2', 'R_{G2}')}}}{{{gc('g2', 'R_{G1}')}+{gc('g2', 'R_{G2}')}}}"
+                 rf" = {gc('g1', '10')}\cdot\frac{{{gc('g2', '10')}}}{{{gc('g2', '10')}+{gc('g2', '10')}}}"
+                 rf" = {f(r['VG'])}\ \mathrm{{V}}"]),
+        dict(st='@2', title='Assume the MOSFET is in saturation',
+             note='The region is unknown. Saturation is the usual bias region; we check this assumption at the end.',
+             eq=[rf"I_D = \frac{{1}}{{2}}\,{gc('g4', KP)}\,(V_{{GS}}-{gc('g4', 'V_t')})^2"]),
+        dict(st='@3', title='Express V_{GS} through the source resistor',
+             note='I_{D} flows through R_{S}, lifting the source to V_{S} = I_{D}R_{S}. With I_{D} in mA and R in kΩ, '
+                  'the products are in volts.',
+             eq=[rf"V_{{GS}} = V_G - I_D\,{gc('g3', 'R_S')} = {f(r['VG'])} - {gc('g3', '6')}\,I_D"]),
+    ])
+
+
+def s_ex_dc_b(pres, lay):
+    sl, r = ex1_frame(pres, lay, 2, [('G', ''), ('S', '@3'), ('D', '@3')])
+    x, w = 580, W - MX - 580
+    y = solution(sl, x, 150, w, [
+        dict(st='@1', n=4, title='Substitute V_{GS} into the saturation equation and solve',
+             note='Units: I_{D} in mA. Expanding gives a quadratic with two roots.',
+             eq=[rf"I_D = \frac{{1}}{{2}}\,({gc('g4', '1')})\,({f(r['VG'])} - {gc('g3', '6')}I_D - {gc('g4', '1')})^2",
+                 rf"18I_D^2-25I_D+8=0\ \Rightarrow\ I_D = {f(r['roots_mA'][1])}\ \text{{or}}\ "
+                 rf"{f(r['roots_mA'][0])}\ \mathrm{{mA}}"]),
+        dict(st='@2', n=5, title='Keep the physical root',
+             note='A valid solution must leave V_{GS} > V_{t}; otherwise there is no channel and no current.',
+             eq=[rf"I_D = {f(r['roots_mA'][1])}:\ \ V_{{GS}} = 5-6({f(r['roots_mA'][1])}) = {f(r['rejected_VGS'])}\ "
+                 rf"\mathrm{{V}} < {gc('g4', 'V_t')}\ \ \text{{(reject)}}",
+                 rf"I_D = {f(r['ID'] * 1e3)}:\ \ V_{{GS}} = 5-6({f(r['ID'] * 1e3)}) = {f(r['VGS'])}\ \mathrm{{V}} > "
+                 rf"{gc('g4', 'V_t')}\ \ \text{{(keep)}}"]),
+        dict(st='@3', n=6, title='Find the drain (and source) voltage',
+             eq=[rf"V_D = {gc('g1', 'V_{DD}')} - I_D\,{gc('g3', 'R_D')} = {gc('g1', '10')} - "
+                 rf"{f(r['ID'] * 1e3)}({gc('g3', '6')}) = {f(r['VD'])}\ \mathrm{{V}},\ \ \ \ "
+                 rf"V_S = I_D\,{gc('g3', 'R_S')} = {f(r['VS'])}\ \mathrm{{V}}"]),
+        dict(st='@4', n=7, title='Check the saturation assumption',
+             note='Saturation needs V_{DS} ≥ V_{GS} − V_{t}.',
+             eq=[rf"V_{{DS}} = {f(r['VD'])}-{f(r['VS'])} = {f(r['VDS'])}\ \mathrm{{V}}\ \geq\ V_{{GS}}-"
+                 rf"{gc('g4', 'V_t')} = {f(r['VOV'])}\ \mathrm{{V}}"],
+             then='✓ The assumption holds.'),
+    ], eq_size=22, gap=10)
+    rw = result(sl, x + 46, y, f"V_{{D}} = {f(r['VD'])} V", size=22, name='answer @4')
+    text(sl, x + 46 + rw + 20, y, w - rw - 70, 40, f"with I_{{D}} = {f(r['ID'] * 1e3)} mA, "
+         f"V_{{GS}} = {f(r['VGS'])} V", size=19, color='text2', anchor='m', name='answer @4')
 
 
 def s_mirror(pres, lay):
     sl = slide(pres, lay, 'The current mirror', section=SEC[3])
-    fig(sl, 'mirror', 760, 170, 608, 540)
+    card(sl, 800, 165, 568, 540, name='drawing card')
+    D.mirror(sl, 880, 190)
     x, w = MX, 640
     y = text_col(sl, x, 185, w, [
         ('@1', 'Q_{1} is diode-connected (gate tied to drain), so it is in saturation. R_{SET} sets its current '
@@ -252,14 +290,19 @@ def s_mirror(pres, lay):
 # ------------------------------------------------------------------ 4 amplifier
 def s_load_line(pres, lay):
     sl = slide(pres, lay, 'Amplifier action: the load line', section=SEC[4])
-    fig(sl, 'amp_circuit', MX, 170, 290, 470)
-    fig(sl, 'load_line', 380, 170, 640, 470)
-    x, w = 1050, W - MX - 1050
-    eq(sl, x, 180, r"v_{DS} = V_{DD} - R_D\,i_D", size=26, w=w, st='@1')
-    text_col(sl, x, 250, w, [
-        ('@2', 'Bias the MOSFET in saturation, between A and B.'),
-        ('@3', 'A small change in v_{GS} moves the operating point along the line: a **large** change in v_{DS}.')],
-        size=21)
+    card(sl, MX, 165, 330, 480, name='drawing card')
+    D.cs_amp(sl, MX + 20, 175)
+    card(sl, 430, 165, 620, 480, name='plot card')
+    D.load_line(sl, 520, 230, 400, 330)
+    x, w = 1080, W - MX - 1080
+    eq(sl, x, 180, r"v_{DS} = V_{DD} - R_D\,i_D", size=24, w=w, st='@1')
+    text_col(sl, x, 245, w, [
+        ('@1', 'KVL at the drain: every operating point lies on this line.'),
+        ('@2', 'Between **A** (edge of triode) and **B** (cutoff) the MOSFET is in saturation: bias it there.'),
+        ('@3', 'A small change in v_{GS} moves the point along the line: a **large** change in v_{DS}.')],
+        size=20)
+    text(sl, 430, 655, 600, 26, 'Curves computed for k′_{n}(W/L) = 1 mA/V², V_{DD} = 10 V, R_{D} = 1.25 kΩ.',
+         size=13, color='text2', name='credit')
 
 
 def s_gm(pres, lay):
@@ -277,45 +320,84 @@ def s_gm(pres, lay):
 
 def s_models(pres, lay):
     sl = slide(pres, lay, 'Small-signal equivalent circuits', section=SEC[4])
-    fig(sl, 'model_a', MX, 165, 620, 400)
-    fig(sl, 'model_b', MX + 676, 165, 620, 400)
+    card(sl, MX, 165, 620, 400, name='drawing card')
+    D.small_signal(sl, MX + 70, 200)
+    card(sl, MX + 676, 165, 620, 400, name='drawing card')
+    D.small_signal(sl, MX + 676 + 50, 200, with_ro=True)
     text_col(sl, MX, 600, 620, [('@1', 'The MOSFET as a voltage-controlled current source g_{m}v_{gs}; '
                                         'no current into the gate.')], size=22)
     text_col(sl, MX + 676, 600, 620, [('@2', 'Adding r_{o} = V_{A}/I_{D} models the slight slope of the saturation '
                                              'curves (V_{A}: the Early voltage).')], size=22)
 
 
-def s_ex_amp(pres, lay):
+EX2_GIVENS = [('g1', 'V_{DD} = 15 V'), ('g2', 'R_{G} = 10 MΩ'), ('g3', 'R_{D} = R_{L} = 10 kΩ'),
+              ('g4', 'V_{t} = 1.5 V,  k′_{n}(W/L) = 0.25 mA/V²,  V_{A} = 50 V')]
+EX2_COL = {'vdd': 'g1', 'rg': 'g2', 'r': 'g3'}
+
+
+def ex2_frame(pres, lay, part, title):
     a = check.ex_cs_amp_feedback_bias()
-    sl = slide(pres, lay, 'Example: gain and input resistance', section=SEC[4])
-    text(sl, MX, 138, W - 2 * MX, 60, 'V_{t} = 1.5 V, k′_{n}(W/L) = 0.25 mA/V², V_{A} = 50 V. Coupling capacitors '
-         'are short circuits for the signal. Find A_{v} = v_{o}/v_{i} and R_{in}.', size=21, color='text2',
-         name='question')
-    fig(sl, 'cs_feedback', MX, 215, 520, 420)
-    x, w = 640, W - MX - 640
-    y = steps(sl, x, 212, w, [
-        ('@2', 'DC: no gate current, so V_{GS} = V_{D}  (I in mA)',
-         r"V_D = 15 - 10I_D,\ \ \ \ \ I_D = \frac{1}{2}(0.25)\,(V_D-1.5)^2",
-         f"I_{{D}} = {f(a['ID'] * 1e3)} mA,  V_{{GS}} = V_{{D}} = {f(a['VD'], 1)} V"),
-        ('@3', 'Small-signal parameters',
-         rf"g_m = 0.25\,({f(a['VGS'], 1)}-1.5) = {f(a['gm'] * 1e3, 3)}\ \mathrm{{mA/V}},\ \ \ \ \ "
-         rf"r_o = \frac{{50}}{{{f(a['ID'] * 1e3)}}} = {f(a['ro'] / 1e3, 0)}\ \mathrm{{k}}\Omega", None),
-        ('@4', 'Gain (R_{G} carries negligible signal current)',
-         rf"A_v \approx -g_m\,(R_D\,\|\,R_L\,\|\,r_o) = -{f(a['gm'] * 1e3, 3)}\,({f(a['Rp'] / 1e3)}) = {f(a['Av'])}\ "
-         rf"\mathrm{{V/V}}", None),
-        ('@5', 'Input resistance: R_{G} bridges input and output (Miller effect)',
-         rf"R_{{in}} = \frac{{R_G}}{{1-A_v}} = \frac{{10}}{{{f(1 - a['Av'])}}} = {f(a['Rin'] / 1e6)}\ \mathrm{{M}}\Omega",
-         None),
-    ], label_size=19, eq_size=23)
-    rw = result(sl, x + 48, y - 6, f"A_{{v}} ≈ {f(a['Av'], 1)} V/V", size=22, name='answer @5')
-    result(sl, x + 48 + rw + 20, y - 6, f"R_{{in}} = {f(a['Rin'] / 1e6)} MΩ", size=22, name='answer @5')
+    sl = slide(pres, lay, f'Example 2: {title} ({part} of 2)', section=SEC[4])
+    card(sl, MX, 150, 620, 450, name='circuit card')
+    D.cs_feedback(sl, MX + 30, 160, col=EX2_COL, size=17)
+    givens(sl, MX, 612, 620, EX2_GIVENS, size=17, gap=2)
+    return sl, a
+
+
+def s_ex_amp_a(pres, lay):
+    sl, a = ex2_frame(pres, lay, 1, 'bias point')
+    x, w = 722, W - MX - 722
+    text(sl, x, 150, w, 60, '**Find** the gain A_{v} = v_{o}/v_{i} and the input resistance R_{in}. '
+         'First, the DC bias point.', size=21, name='question')
+    solution(sl, x, 225, w, [
+        dict(st='@1', title='Keep only the DC circuit',
+             note='Coupling capacitors are open circuits at DC, so v_{i}, R_{L} and the output terminal drop out.'),
+        dict(st='@2', title='Relate V_{GS} to V_{D}',
+             note='No gate current flows, so there is no drop across R_{G}: V_{G} = V_{D}. With the source grounded, '
+                  'V_{GS} = V_{DS} ≥ V_{GS} − V_{t}: saturation is guaranteed.',
+             eq=[rf"V_{{GS}} = V_D = {gc('g1', '15')} - {gc('g3', '10')}\,I_D"]),
+        dict(st='@3', title='Solve for the bias current (I_{D} in mA)',
+             eq=[rf"I_D = \frac{{1}}{{2}}\,({gc('g4', '0.25')})\,(V_D - {gc('g4', '1.5')})^2",
+                 rf"12.5I_D^2 - 34.75I_D + 22.78 = 0\ \Rightarrow\ I_D = {f(a['ID'] * 1e3)}\ \text{{or}}\ "
+                 rf"{f(a['other_mA'])}\ \mathrm{{mA}}"],
+             then=f"I_{{D}} = {f(a['other_mA'])} mA gives V_{{GS}} = {f(a['other_VGS'])} V < V_{{t}}: reject. "
+                  f"So I_{{D}} = **{f(a['ID'] * 1e3)} mA** and V_{{GS}} = V_{{D}} = **{f(a['VD'])} V**."),
+    ], eq_size=22, gap=12)
+
+
+def s_ex_amp_b(pres, lay):
+    sl, a = ex2_frame(pres, lay, 2, 'gain and input resistance')
+    x, w = 722, W - MX - 722
+    gm, ro, Rp = a['gm'] * 1e3, a['ro'] / 1e3, a['Rp'] / 1e3
+    y = solution(sl, x, 150, w, [
+        dict(st='@1', n=4, title='Small-signal parameters at the bias point',
+             eq=[rf"g_m = {gc('g4', KP)}\,(V_{{GS}}-{gc('g4', 'V_t')}) = {gc('g4', '0.25')}\,({f(a['VGS'])}-"
+                 rf"{gc('g4', '1.5')}) = {f(gm, 3)}\ \mathrm{{mA/V}}",
+                 rf"r_o = \frac{{{gc('g4', 'V_A')}}}{{I_D}} = \frac{{{gc('g4', '50')}}}{{{f(a['ID'] * 1e3)}}} = "
+                 rf"{f(ro, 1)}\ \mathrm{{k}}\Omega"]),
+        dict(st='@2', n=5, title='Find the load seen by the drain',
+             note='Capacitors are shorts for the signal. R_{G} is so large that its signal current is negligible.',
+             eq=[rf"{gc('g3', 'R_D')}\,\|\,{gc('g3', 'R_L')}\,\|\,r_o = {gc('g3', '10')}\,\|\,{gc('g3', '10')}\,\|\,"
+                 rf"{f(ro, 1)} = {f(Rp)}\ \mathrm{{k}}\Omega"]),
+        dict(st='@3', n=6, title='Voltage gain',
+             eq=[rf"A_v = \frac{{v_o}}{{v_i}} \approx -g_m\,(R_D\,\|\,R_L\,\|\,r_o) = -{f(gm, 3)}\times{f(Rp)} = "
+                 rf"{f(a['Av'])}\ \mathrm{{V/V}}"]),
+        dict(st='@4', n=7, title='Input resistance (Miller effect)',
+             note='R_{G} joins input and output. The output swings by A_{v}v_{i}, so the current into R_{G} is '
+                  '(1 − A_{v})v_{i}/R_{G}: the input sees R_{G} divided by (1 − A_{v}).',
+             eq=[rf"R_{{in}} = \frac{{{gc('g2', 'R_G')}}}{{1-A_v}} = \frac{{{gc('g2', '10')}}}{{1+"
+                 rf"{f(-a['Av'])}}} = {f(a['Rin'] / 1e6)}\ \mathrm{{M}}\Omega"]),
+    ], eq_size=22, gap=10)
+    rw = result(sl, x + 46, y, f"A_{{v}} ≈ {f(a['Av'], 1)} V/V", size=21, name='answer @4')
+    result(sl, x + 46 + rw + 18, y, f"R_{{in}} = {f(a['Rin'] / 1e6)} MΩ", size=21, name='answer @4')
 
 
 # ------------------------------------------------------------------ 5 switch
 def s_switch(pres, lay):
     sl = slide(pres, lay, 'The MOSFET as a switch', section=SEC[5])
-    fig(sl, 'switch', MX, 175, 640, 470)
-    text_col(sl, 760, 190, W - MX - 760, [
+    card(sl, MX, 175, 700, 430, name='drawing card')
+    D.switch_pair(sl, MX + 70, 210)
+    text_col(sl, 810, 190, W - MX - 810, [
         ('@1', 'v_{GS} < V_{t}: **cutoff**. The switch is **open** and i_{D} = 0.'),
         ('@2', 'v_{GS} high and v_{DS} small: deep **triode**. The switch is **closed**, with a small resistance '
                'r_{DS}.'),
@@ -353,12 +435,12 @@ def main():
             s(pres, lay)
         section_slide(pres, lay, 3, SECTIONS[2][0], ['Assume, solve, check', 'Example: the drain voltage',
                                                     'The current mirror'], SECTIONS)
-        for s in (s_recipe, s_ex_dc, s_mirror):
+        for s in (s_recipe, s_ex_dc_a, s_ex_dc_b, s_mirror):
             s(pres, lay)
         section_slide(pres, lay, 4, SECTIONS[3][0], ['The load line', 'Transconductance g_{m}',
                                                     'Small-signal models', 'Example: gain and input resistance'],
                       SECTIONS)
-        for s in (s_load_line, s_gm, s_models, s_ex_amp):
+        for s in (s_load_line, s_gm, s_models, s_ex_amp_a, s_ex_amp_b):
             s(pres, lay)
         section_slide(pres, lay, 5, SECTIONS[4][0], ['Cutoff: an open switch', 'Deep triode: a closed switch'],
                       SECTIONS)
@@ -367,14 +449,15 @@ def main():
         closing_slide(pres, lay, 'Lecture 4: Bipolar junction transistors (BJTs)', M.CREDIT,
                       'who prepared the original material for this lecture',
                       ['Sedra & Smith, Microelectronic Circuits (Oxford University Press)',
-                       'other diagrams from web sources via the original slides'])
+                       'other diagrams from web sources via the original slides; circuits and the load-line plot '
+                       'redrawn for this lecture'])
         pres.SaveAs(src)
     finally:
         pres.Close()
     print('equations:', eqn.inject(src, roman_subs=False))
     built = {m: states.build(src, OUT, m) for m in ('teaching', 'solution')}
     os.makedirs(DRAFT, exist_ok=True)
-    stem = f'{M.SHORT} L{LNO} {TOPIC} draft-{V}'
+    stem = f'{M.SHORT} L{LNO} {TOPIC} draft-2'
     shutil.copyfile(built['teaching'][0], os.path.join(DRAFT, f'{stem} (present).pptx'))
     shutil.copyfile(built['solution'][1], os.path.join(DRAFT, f'{stem} (student).pdf'))
     print('released to', DRAFT)

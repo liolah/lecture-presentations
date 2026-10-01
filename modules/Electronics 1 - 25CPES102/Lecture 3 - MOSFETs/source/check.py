@@ -64,8 +64,13 @@ def ex_cs_amp_feedback_bias(VDD=15.0, RD=10e3, RG=10e6, RL=10e3, Vt=1.5, kWL=0.2
     Rin = RG / (1 - Av)
     # exact (R_G feedback included): v_o (1/Rp + 1/RG) = v_i (1/RG - g_m)
     Av_exact = (1 / RG - gm) / (1 / Rp + 1 / RG)
+    other = [I for I in roots if I != ID][0]
     return {'ID': ID, 'VGS': VGS, 'VD': VD, 'gm': gm, 'ro': ro, 'Rp': Rp, 'Av': Av, 'Rin': Rin,
-            'Av_exact': Av_exact, 'Rin_exact': RG / (1 - Av_exact)}
+            'Av_exact': Av_exact, 'Rin_exact': RG / (1 - Av_exact),
+            'roots_mA': [r * 1e3 for r in roots], 'other_mA': other * 1e3, 'other_VGS': VDD - RD * other,
+            # quadratic in slide units (I in mA): a I^2 + b I + c = 0
+            'quad_mA': (0.5 * kWL * 1e3 * (RD / 1e3) ** 2, -(kWL * 1e3 * (RD / 1e3) * (VDD - Vt) + 1),
+                        0.5 * kWL * 1e3 * (VDD - Vt) ** 2)}
 
 
 def fmt(x, nd=2):

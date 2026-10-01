@@ -1,9 +1,11 @@
-"""Electronics lecture kit (CANDIDATE, round 2): slide components in two styles, chosen by tokens style.shape:
-'angular' (X: parallelogram tags, sharp cards, corner geometry) or 'rounded' (Y: pills, rounded cards, node motif).
+"""Electronics lecture kit: slide components for the APPROVED style X ('angular': parallelogram tags, sharp cards,
+corner geometry; tokens in design/tokens.json). The 'rounded' branches (style Y) are retired and kept only so the
+round-2 drafts can be rebuilt.
 
-Not approved yet: used to build full-lecture drafts so the user can judge X vs Y on real material.
-Import after family.use('electronics') with DECK_TOKENS pointing at a round2 tokens file:
-    import kit; kit.setup(footer='ELEC1 · Lecture 3 · MOSFETs')
+    import family; family.use('electronics'); import kit; kit.setup(footer='ELEC1 · Lecture 3 · MOSFETs')
+
+Worked examples (user preference): givens() lists colour-coded givens; gc('g1', latex) colours a given inside an
+equation; solution() lays out elaborate steps (title, comment, equations, conclusion).
 """
 import os, re
 from deckkit import *                       # noqa
@@ -153,6 +155,48 @@ def steps(sl, x, y, w, items, label_size=21, eq_size=26):
                       name='lab ' + st)
             yy = et.Top + et.Height
         y = yy + 16
+    return y
+
+
+# ------------------------------------------------------------------ worked examples
+def gc(key, latex):
+    """Colour a given inside an equation: gc('g1', '10') -> \\textcolor{#1F6FA8}{10}."""
+    return r'\textcolor{#%s}{%s}' % (C[key], latex)
+
+
+def givens(sl, x, y, w, items, title='Given', size=20, gap=8):
+    """Colour-coded givens: items = [(colour_key, markup)]. Each line starts with a colour square. Returns bottom y."""
+    label_tag(sl, x, y, title, name='given')
+    y += 40
+    for key, s in items:
+        box(sl, x, y + size * 0.35, size * 0.55, size * 0.55, fill=key, name='given')
+        t = text(sl, x + size, y, w - size, size * 1.4, f'[[{key}+b:{s}]]', size=size, autofit=True, name='given')
+        y = t.Top + t.Height + gap
+    return y
+
+
+def solution(sl, x, y, w, steps, title_size=20, note_size=17, eq_size=24, gap=14):
+    """Elaborate worked steps. steps = [dict(st, title, note=None, eq=[latex...], then=None)].
+    title: what the step does (bold); note: why (comment, grey); eq: one or more equations; then: conclusion line.
+    Returns bottom y."""
+    for i, s in enumerate(steps, 1):
+        st = s.get('st', '')
+        badge(sl, x, y + 1, s.get('n', i), st=st or None)
+        t = text(sl, x + 46, y, w - 46, title_size * 1.4, f"**{s['title']}**", size=title_size, autofit=True,
+                 name='step ' + st)
+        yy = t.Top + t.Height + 2
+        if s.get('note'):
+            n = text(sl, x + 46, yy, w - 46, note_size * 1.4, s['note'], size=note_size, color='text2', autofit=True,
+                     italic=True, name='note ' + st)
+            yy = n.Top + n.Height + 2
+        for latex in s.get('eq', []):
+            eq(sl, x + 46, yy, latex, size=eq_size, w=w - 46, st=st)
+            yy += eq_h(latex, eq_size)
+        if s.get('then'):
+            c = text(sl, x + 46, yy, w - 46, title_size * 1.4, s['then'], size=title_size - 1, color='navy',
+                     autofit=True, name='then ' + st)
+            yy = c.Top + c.Height
+        y = yy + gap
     return y
 
 

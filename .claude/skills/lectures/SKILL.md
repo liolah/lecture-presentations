@@ -28,7 +28,10 @@ Check technical doubts numerically in `check.py` or against the textbook. If sti
 - `data.py`: content only (titles, text, figure refs, example data).
 - `check.py`: compute every answer (sympy/numpy); the build imports the results. No hand-typed numbers.
 - `build.py`: `family.use('<family>')`, then the family's `lib/` builders. Reference figures go through `figures.py`
-  (crop, clean, credit); equations through `eqn.py` (native OMML).
+  (crop into raw/, enhance, credit); circuits/graphs that are not crisp are redrawn in `drawings.py` with
+  `lib/circuits.py` / `lib/plots.py`; equations through `eqn.py` (native OMML; `kit.gc` colours a given).
+- Worked examples: `kit.givens` + `kit.solution` (title, one-line reason, equations, conclusion per step); colour
+  each given consistently in the list, on the circuit and in substitutions; split over 2 slides when needed.
 - Tag the step reveals (`@k`, `@dimK`, `@final`). Cover, section and closing slides get `#nochrome`.
 
 ## 5. Verify

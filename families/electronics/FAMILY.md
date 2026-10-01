@@ -2,9 +2,14 @@
 
 Visual identity for the Electronics modules (Electronics 1, 25CPES102; later Electronics 2 if added).
 
-## Status: exploring
-There is no approved design system yet. Work happens in `explore/roundN/`: the same MOSFET sample in a few directions,
-reviewed with the user each round. `design/tokens.json` is written **only after** the user approves the sample.
+## Status: approved (style X "Schematic", user, 2026-10-01)
+- Tokens: `design/tokens.json`. Components: `lib/kit.py` (slides, cards, tags, givens, elaborate solutions, tables),
+  `lib/circuits.py` (native schematics between terminal points), `lib/plots.py` (computed native plots).
+- Worked examples: colour-coded givens (`g1`..`g4`) in the Given list, on the circuit and in every substitution
+  (`kit.gc`); elaborate steps with a one-line reason each (`kit.solution`); usually 2 slides per example.
+- Figures: textbook figures kept and enhanced (`figures.py`); circuits and graphs that are not crisp are redrawn natively.
+- Exploration history: `explore/round1` (rejected: too close to sheet notes), `explore/round2` (X chosen over Y).
+- Pending: `design/patterns.md` (pattern catalogue) and a PowerPoint template, to be written from L3 once its draft 2 is reviewed.
 
 ## What this family has to serve (from the survey of L3–L5)
 - **Textbook figures dominate.** Sedra/Smith instructor figures, drawn in a soft steel-blue on white, and some web images.

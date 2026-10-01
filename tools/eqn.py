@@ -44,15 +44,78 @@ def upright_subscripts(latex):
     return re.sub(r'\\mathrm\{', r'\\text{', latex)
 
 
-def to_omml(latex, roman_subs=True):
+MML = 'http://www.w3.org/1998/Math/MathML'
+_TOKENS = ('mi', 'mn', 'mo', 'mtext')
+_END = '\ue0ff'           # private-use sentinels carry \textcolor spans through MML2OMML, which drops colours
+
+
+def _mark_colours(mml):
+    """\\textcolor{#RRGGBB}{..} -> mstyle@mathcolor. Wrap the text of every token inside it in sentinels
+    (U+E000+i ... U+E0FF) and return the colour list; pptx_math() turns the marked text into coloured runs."""
+    colours = []
+    for ms in mml.iter('{%s}mstyle' % MML):
+        c = ms.get('mathcolor')
+        if not c:
+            continue
+        i = len(colours); colours.append(c.lstrip('#').upper())
+        for tok in ms.iter(*('{%s}%s' % (MML, t) for t in _TOKENS)):
+            if tok.text:
+                if tok.tag.endswith('mi') and len(tok.text) == 1 and tok.get('mathvariant') is None:
+                    tok.set('mathvariant', 'italic')     # keep single letters italic once the text gets longer
+                tok.text = chr(0xE000 + i) + tok.text + _END
+    return colours
+
+
+def to_omml(latex, roman_subs=True, with_colours=False):
     """LaTeX -> <m:oMath> element (Word-flavoured run properties still inside)."""
     from latex2mathml.converter import convert
     if roman_subs:
         latex = upright_subscripts(latex)
     latex = re.sub(r'\\mathrm\{', r'\\text{', latex)   # units etc.: latex2mathml drops \mathrm on single letters
     mml = etree.fromstring(convert(latex).encode('utf-8'))
+    colours = _mark_colours(mml)
     out = _transform()(mml).getroot()
-    return out if out.tag == '{%s}oMath' % M else out.find('.//m:oMath', NS)
+    om = out if out.tag == '{%s}oMath' % M else out.find('.//m:oMath', NS)
+    return (om, colours) if with_colours else om
+
+
+def _split_coloured_runs(om, colours):
+    """Split runs at the sentinels; coloured segments get their own run with the span's colour."""
+    cur = None
+    for r in list(om.iter('{%s}r' % M)):
+        t = r.find('m:t', NS)
+        if t is None or not t.text:
+            continue
+        segs, buf = [], ''
+        for ch in t.text:
+            o = ord(ch)
+            if 0xE000 <= o < 0xE0FF or ch == _END:
+                if buf:
+                    segs.append((buf, cur)); buf = ''
+                cur = None if ch == _END else o - 0xE000
+            else:
+                buf += ch
+        if buf:
+            segs.append((buf, cur))
+        if not segs:
+            r.getparent().remove(r); continue
+        if len(segs) == 1 and segs[0][1] is None and t.text == segs[0][0]:
+            continue
+        parent, idx = r.getparent(), r.getparent().index(r)
+        parent.remove(r)
+        for k, (txt, ci) in enumerate(segs):
+            nr = copy.deepcopy(r)
+            nr.find('m:t', NS).text = txt
+            if ci is not None:
+                ap = nr.find('a:rPr', NS)
+                sf = ap.find('a:solidFill', NS)
+                if sf is None:
+                    sf = etree.Element('{%s}solidFill' % A); ap.insert(0, sf)
+                for c in list(sf):
+                    sf.remove(c)
+                etree.SubElement(sf, '{%s}srgbClr' % A, val=colours[ci])
+                ap.set('b', '1')
+            parent.insert(idx + k, nr)
 
 
 def _arpr(size, color, font, bold=False):
@@ -67,7 +130,7 @@ def _arpr(size, color, font, bold=False):
 
 def pptx_math(latex, size, color, font='Cambria Math', align='left', roman_subs=True):
     """-> <a14:m><m:oMathPara>...</m:oMathPara></a14:m> ready to drop into an <a:p>."""
-    om = to_omml(latex, roman_subs=roman_subs)
+    om, colours = to_omml(latex, roman_subs=roman_subs, with_colours=True)
     for rpr in om.iter('{%s}rPr' % W):         # Word run props -> DrawingML run props
         parent = rpr.getparent()
         parent.replace(rpr, _arpr(size, color, font))
@@ -77,6 +140,8 @@ def pptx_math(latex, size, color, font='Cambria Math', align='left', roman_subs=
     for cp in om.iter('{%s}ctrlPr' % M):
         if cp.find('a:rPr', NS) is None:
             cp.append(_arpr(size, color, font))
+    if colours:
+        _split_coloured_runs(om, colours)
     m14 = etree.Element('{%s}m' % A14, nsmap={'a14': A14})
     para = etree.SubElement(m14, '{%s}oMathPara' % M, nsmap={'m': M})
     ppr = etree.SubElement(para, '{%s}oMathParaPr' % M)
